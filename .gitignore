@@ -1,0 +1,12 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# Docker
+.env
+
+# Sistema
+.DS_Store
+Thumbs.db
