@@ -1,6 +1,90 @@
-@backend_HostAddress = http://localhost:5287
+@api = http://localhost:5287/api
+@competencia = 2026-10
 
-GET {{backend_HostAddress}}/weatherforecast/
-Accept: application/json
+# @name login
+POST {{api}}/autenticacao/login
+Content-Type: application/json
+
+{ "email": "colaborador@dreams.local", "senha": "Senha@123" }
 
 ###
+@token = {{login.response.body.tokenAcesso}}
+@tokenRenovacao = {{login.response.body.tokenRenovacao}}
+
+GET {{api}}/eu
+Authorization: Bearer {{token}}
+
+###
+GET {{api}}/eu/status
+Authorization: Bearer {{token}}
+
+###
+POST {{api}}/marcacoes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "tipo": "Entrada", "modalidadeTrabalho": "Remoto", "origemRegistro": "Web", "fusoHorarioId": "America/Sao_Paulo" }
+
+###
+GET {{api}}/marcacoes?de=2026-10-01&ate=2026-10-31
+Authorization: Bearer {{token}}
+
+###
+GET {{api}}/espelhos/{{competencia}}
+Authorization: Bearer {{token}}
+
+###
+POST {{api}}/ajustes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tipoSolicitacao": "Adicionar",
+  "tipoMarcacaoProposto": "Saida",
+  "ocorridoEmProposto": "2026-10-08T21:00:00Z",
+  "motivo": "Esqueci de registrar a saída"
+}
+
+###
+GET {{api}}/ajustes?status=Pendente
+Authorization: Bearer {{token}}
+
+###
+POST {{api}}/autenticacao/renovar
+Content-Type: application/json
+
+{ "tokenRenovacao": "{{tokenRenovacao}}" }
+
+###
+# @name loginGestor
+POST {{api}}/autenticacao/login
+Content-Type: application/json
+
+{ "email": "gestor@dreams.local", "senha": "Senha@123" }
+
+###
+@tokenGestor = {{loginGestor.response.body.tokenAcesso}}
+
+GET {{api}}/equipe/status
+Authorization: Bearer {{tokenGestor}}
+
+###
+# @name loginRh
+POST {{api}}/autenticacao/login
+Content-Type: application/json
+
+{ "email": "rh@dreams.local", "senha": "Senha@123" }
+
+###
+@tokenRh = {{loginRh.response.body.tokenAcesso}}
+
+GET {{api}}/admin/funcionarios
+Authorization: Bearer {{tokenRh}}
+
+###
+POST {{api}}/admin/periodos/2026-09/fechar?codigoPais=BR
+Authorization: Bearer {{tokenRh}}
+
+###
+GET {{api}}/admin/relatorios/{{competencia}}.csv
+Authorization: Bearer {{tokenRh}}
