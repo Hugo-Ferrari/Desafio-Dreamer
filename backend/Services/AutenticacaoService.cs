@@ -60,6 +60,39 @@ public class AutenticacaoService(
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task AlterarSenhaInicialAsync(
+        Guid funcionarioId,
+        AlterarSenhaInicialRequest request,
+        CancellationToken ct)
+    {
+        var funcionario = await db.Funcionarios.FirstOrDefaultAsync(f => f.Id == funcionarioId && f.Ativo, ct)
+            ?? throw new RecursoNaoEncontradoException("Funcionário não encontrado.");
+
+        if (!funcionario.DeveAlterarSenha)
+        {
+            throw new RegraNegocioException("Não há troca obrigatória de senha pendente para esta conta.");
+        }
+
+        if (hasherSenha.VerifyHashedPassword(funcionario, funcionario.HashSenha, request.NovaSenha) != PasswordVerificationResult.Failed)
+        {
+            throw new RegraNegocioException("A nova senha deve ser diferente da senha inicial.");
+        }
+
+        funcionario.HashSenha = hasherSenha.HashPassword(funcionario, request.NovaSenha);
+        funcionario.DeveAlterarSenha = false;
+
+        var agora = AgoraUtc;
+        var tokensAtivos = await db.TokensRenovacao
+            .Where(token => token.FuncionarioId == funcionarioId && token.RevogadoEmUtc == null)
+            .ToListAsync(ct);
+        foreach (var token in tokensAtivos)
+        {
+            token.Revogar(agora);
+        }
+
+        await db.SaveChangesAsync(ct);
+    }
+
     private TokensResponse EmitirTokens(Funcionario funcionario)
     {
         var agora = AgoraUtc;

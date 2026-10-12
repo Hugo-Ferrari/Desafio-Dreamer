@@ -12,6 +12,8 @@ public record TokenAcesso(string Token, DateTime ExpiraEmUtc);
 public class GeradorTokens(IOptions<ConfiguracaoJwt> opcoes, TimeProvider relogio)
 {
     public const string ClaimPerfil = "role";
+    public const string ClaimTrocaSenhaInicial = "troca_senha_inicial";
+    public const string PoliticaTrocaSenhaInicial = "TrocaSenhaInicial";
 
     private readonly ConfiguracaoJwt _configuracao = opcoes.Value;
 
@@ -35,6 +37,11 @@ public class GeradorTokens(IOptions<ConfiguracaoJwt> opcoes, TimeProvider relogi
                 [ClaimPerfil] = funcionario.Perfil.ToString()
             }
         };
+
+        if (funcionario.DeveAlterarSenha)
+        {
+            descritor.Claims[ClaimTrocaSenhaInicial] = true;
+        }
 
         return new TokenAcesso(new JsonWebTokenHandler().CreateToken(descritor), expiraEmUtc);
     }

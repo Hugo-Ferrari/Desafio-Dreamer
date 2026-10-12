@@ -20,6 +20,18 @@ public class AdminController(
     public Task<IReadOnlyList<FuncionarioResponse>> ListarFuncionarios(CancellationToken ct) =>
         funcionarios.ListarAsync(ct);
 
+    [HttpGet("funcionarios/opcoes-cadastro")]
+    public Task<OpcoesCadastroFuncionarioResponse> ObterOpcoesCadastro(CancellationToken ct) =>
+        funcionarios.ObterOpcoesCadastroAsync(ct);
+
+    [HttpPost("funcionarios")]
+    [ProducesResponseType<FuncionarioResponse>(StatusCodes.Status201Created)]
+    public async Task<IActionResult> CriarFuncionario(CriarFuncionarioRequest request, CancellationToken ct)
+    {
+        var funcionario = await funcionarios.CriarAsync(request, ct);
+        return StatusCode(StatusCodes.Status201Created, funcionario);
+    }
+
     [HttpPost("periodos/{competencia}/fechar")]
     public Task<FechamentoPeriodoResponse> FecharPeriodo(
         Competencia competencia,

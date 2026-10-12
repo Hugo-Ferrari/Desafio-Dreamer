@@ -142,6 +142,9 @@ namespace backend.Data.Migrations
                     b.Property<DateTime>("CriadoEmUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("DeveAlterarSenha")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(254)

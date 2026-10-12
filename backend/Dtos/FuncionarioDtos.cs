@@ -1,7 +1,27 @@
+using System.ComponentModel.DataAnnotations;
 using backend.Models;
 using backend.Models.Enums;
 
 namespace backend.Dtos;
+
+public record CriarFuncionarioRequest(
+    [Required, StringLength(150, MinimumLength = 1)] string Nome,
+    [Required, EmailAddress, StringLength(254)] string Email,
+    [Required, MinLength(8), MaxLength(128)] string SenhaInicial,
+    PerfilFuncionario Perfil,
+    [Required, StringLength(2, MinimumLength = 2)] string CodigoPais,
+    [Required] Guid JornadaContratualId,
+    Guid? GestorId = null,
+    [StringLength(100)] string? FusoHorarioPadrao = null);
+
+public record PaisOpcaoResponse(string Codigo, string Nome, string FusoHorarioPadrao);
+
+public record GestorOpcaoResponse(Guid Id, string Nome, PerfilFuncionario Perfil);
+
+public record OpcoesCadastroFuncionarioResponse(
+    IReadOnlyList<PaisOpcaoResponse> Paises,
+    IReadOnlyList<JornadaContratualResponse> JornadasContratuais,
+    IReadOnlyList<GestorOpcaoResponse> Gestores);
 
 public record JornadaContratualResponse(
     Guid Id,

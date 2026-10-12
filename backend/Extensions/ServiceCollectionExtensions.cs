@@ -79,7 +79,16 @@ public static class ServiceCollectionExtensions
             });
 
         services.AddAuthorizationBuilder()
-            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
+            .AddPolicy(
+                GeradorTokens.PoliticaTrocaSenhaInicial,
+                politica => politica
+                    .RequireAuthenticatedUser()
+                    .RequireClaim(GeradorTokens.ClaimTrocaSenhaInicial, "true"))
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .RequireAssertion(context =>
+                    context.User.FindFirst(GeradorTokens.ClaimTrocaSenhaInicial)?.Value != "true")
+                .Build());
 
         services.AddSingleton<GeradorTokens>();
         services.AddSingleton<IPasswordHasher<Funcionario>, PasswordHasher<Funcionario>>();

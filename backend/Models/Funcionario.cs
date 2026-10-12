@@ -30,6 +30,8 @@ public class Funcionario
 
     public bool Ativo { get; set; } = true;
 
+    public bool DeveAlterarSenha { get; set; }
+
     public DateTime CriadoEmUtc { get; set; }
 
     public ICollection<Funcionario> Subordinados { get; set; } = [];
