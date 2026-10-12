@@ -113,6 +113,7 @@ public class AjusteService(PontoDbContext db,FabricaMarcacao fabricaMarcacao,Fec
 
         if (solicitacao.TipoSolicitacao == TipoSolicitacaoAjuste.Anular)
         {
+            await ValidarSequenciaResultanteAsync(funcionario.Id, marcacaoAlvo!.Id, null, ct);
             return;
         }
 
@@ -120,7 +121,7 @@ public class AjusteService(PontoDbContext db,FabricaMarcacao fabricaMarcacao,Fec
         var modalidade = marcacaoAlvo?.ModalidadeTrabalho
             ?? await BuscarModalidadeDeReferenciaAsync(funcionario.Id, ocorridoEmUtc, ct);
 
-        await fabricaMarcacao.CriarAsync(new DadosNovaMarcacao(
+        var novaMarcacao = await fabricaMarcacao.CriarAsync(new DadosNovaMarcacao(
             funcionario.Id,
             funcionario.CodigoPais,
             solicitacao.TipoMarcacaoProposto ?? marcacaoAlvo!.Tipo,
@@ -129,6 +130,48 @@ public class AjusteService(PontoDbContext db,FabricaMarcacao fabricaMarcacao,Fec
             modalidade,
             OrigemRegistro.Ajuste,
             SubstituiMarcacaoId: marcacaoAlvo?.Id), ct);
+
+        await ValidarSequenciaResultanteAsync(funcionario.Id, marcacaoAlvo?.Id, novaMarcacao, ct);
+    }
+
+    private async Task ValidarSequenciaResultanteAsync(
+        Guid funcionarioId,
+        Guid? marcacaoSubstituidaId,
+        MarcacaoPonto? novaMarcacao,
+        CancellationToken ct)
+    {
+        var marcacoes = await db.MarcacoesPonto
+            .AsNoTracking()
+            .Where(marcacao => marcacao.FuncionarioId == funcionarioId && !marcacao.Anulada)
+            .ToListAsync(ct);
+
+        if (marcacaoSubstituidaId is { } id)
+        {
+            marcacoes.RemoveAll(marcacao => marcacao.Id == id);
+        }
+
+        if (novaMarcacao is not null)
+        {
+            marcacoes.Add(novaMarcacao);
+        }
+
+        MarcacaoPonto? anterior = null;
+        foreach (var marcacao in marcacoes.OrderBy(marcacao => marcacao.OcorridoEmUtc))
+        {
+            if (anterior is not null && marcacao.OcorridoEmUtc <= anterior.OcorridoEmUtc)
+            {
+                throw new RegraNegocioException("O ajuste deixaria duas marcações no mesmo instante.");
+            }
+
+            var permitidas = SequenciaMarcacao.ProximosTiposPermitidos(anterior, marcacao.OcorridoEmUtc);
+            if (!permitidas.Contains(marcacao.Tipo))
+            {
+                throw new RegraNegocioException(
+                    $"O ajuste deixaria a sequência de marcações inválida. Próximas permitidas: {string.Join(", ", permitidas)}.");
+            }
+
+            anterior = marcacao;
+        }
     }
 
     private async Task<SolicitacaoAjuste> BuscarParaAvaliacaoAsync(
