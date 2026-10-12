@@ -1,0 +1,38 @@
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ponto}
+      POSTGRES_USER: ${POSTGRES_USER:-ponto_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_dev_password}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - ponto_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Padrao: Host=database;Port=5432;Database=${POSTGRES_DB:-ponto};Username=${POSTGRES_USER:-ponto_app};Password=${POSTGRES_PASSWORD:-local_dev_password}
+      Cors__OrigensPermitidas__0: http://localhost:4200
+    ports:
+      - "127.0.0.1:5287:8080"
+    depends_on:
+      database:
+        condition: service_healthy
+
+  web:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:4200:80"
+    depends_on:
+      - api
+
+volumes:
+  ponto_postgres_data:
